@@ -1,7 +1,4 @@
-// ---- ViewOnly Host ----
-// This page only ever SENDS video. It never reads input from the viewer.
-// There is no data channel, no remote-control logic of any kind here.
-
+// ---- ViewOnly Host (patched) ----
 const SESSION_SECONDS = 120;
 
 const idBox = document.getElementById("session-id");
@@ -17,15 +14,16 @@ let localStream = null;
 let activeCall = null;
 let countdownInterval = null;
 let secondsLeft = SESSION_SECONDS;
+let peerReady = false;
 
-function randomCode() {
-  // Short, easy-to-share code instead of PeerJS's default long UUID.
-  return Math.random().toString(36).slice(2, 10);
+function makeCode() {
+  return Math.random().toString(36).slice(2, 8);
 }
 
 function setStatus(dotClass, text) {
   statusDot.className = "dot " + dotClass;
   statusText.textContent = text;
+  console.log("[HOST]", text);
 }
 
 function formatTime(s) {
@@ -39,14 +37,11 @@ function startCountdown() {
   timerEl.style.display = "block";
   timerEl.textContent = formatTime(secondsLeft);
   timerEl.classList.remove("warn");
-
   countdownInterval = setInterval(() => {
     secondsLeft -= 1;
     timerEl.textContent = formatTime(secondsLeft);
     if (secondsLeft <= 20) timerEl.classList.add("warn");
-    if (secondsLeft <= 0) {
-      endSessionCompletely("Session time limit reached (2 minutes).");
-    }
+    if (secondsLeft <= 0) endSessionCompletely("Session time limit reached.");
   }, 1000);
 }
 
@@ -56,90 +51,88 @@ function stopCountdown() {
   timerEl.style.display = "none";
 }
 
-function initPeer() {
-  const code = randomCode();
-  peer = new Peer(code, {
-    debug: 1,
-  });
+function createPeerWithRetry(attempt = 0) {
+  const code = makeCode();
+  idBox.textContent = "connecting…";
+  peerReady = false;
 
-  peer.on("open", (id) => {
+  const p = new Peer(code, { debug: 2 });
+
+  p.on("open", (id) => {
+    peer = p;
+    peerReady = true;
     idBox.textContent = id;
+    setStatus("waiting", "Ready — code shown above");
   });
 
-  peer.on("error", (err) => {
-    console.error("Peer error:", err);
-    setStatus("off", "Connection error — refresh to retry");
+  p.on("error", (err) => {
+    console.error("[HOST] peer error:", err.type, err);
+    if (err.type === "unavailable-id" && attempt < 5) {
+      p.destroy();
+      createPeerWithRetry(attempt + 1);
+      return;
+    }
+    setStatus("off", "Connection error: " + (err.type || "unknown"));
   });
 
-  // A viewer is calling us. Only accept one viewer at a time.
-  peer.on("call", (call) => {
+  p.on("call", (call) => {
     if (!localStream) {
-      call.close(); // not sharing right now, reject
+      call.close();
+      console.warn("[HOST] rejected call — not sharing");
       return;
     }
     if (activeCall) {
-      call.close(); // already have a viewer, reject additional
+      call.close();
+      console.warn("[HOST] rejected call — already have a viewer");
       return;
     }
     activeCall = call;
-    call.answer(localStream); // we send video, we never request theirs
-
+    call.answer(localStream);
     setStatus("live", "Viewer connected");
     watchingBanner.style.display = "flex";
     startCountdown();
 
     call.on("close", () => {
-      handleViewerDisconnected();
+      activeCall = null;
+      watchingBanner.style.display = "none";
+      stopCountdown();
+      if (localStream) setStatus("waiting", "Sharing — waiting for a viewer");
     });
+    call.on("error", (e) => console.error("[HOST] call error", e));
   });
 }
 
-function handleViewerDisconnected() {
-  activeCall = null;
-  watchingBanner.style.display = "none";
-  stopCountdown();
-  if (localStream) {
-    setStatus("waiting", "Sharing — waiting for a viewer");
-  }
-}
-
 async function startSharing() {
+  if (!peerReady) {
+    setStatus("off", "Still connecting to server… try again in a second");
+    return;
+  }
   try {
     localStream = await navigator.mediaDevices.getDisplayMedia({
       video: { frameRate: 10 },
       audio: false,
     });
   } catch (err) {
-    // User cancelled the browser's own share picker, or denied it.
-    console.warn("Screen share cancelled:", err);
+    console.warn("[HOST] share cancelled", err);
     return;
   }
 
-  // If the user stops sharing from the browser's own "Stop sharing" control,
-  // end everything on our side too.
   localStream.getVideoTracks()[0].addEventListener("ended", () => {
-    endSessionCompletely("Screen sharing was stopped.");
+    endSessionCompletely("Screen sharing stopped.");
   });
 
   startBtn.style.display = "none";
   endBtn.style.display = "block";
   setStatus("waiting", "Sharing — waiting for a viewer");
-
-  if (!peer) initPeer();
 }
 
 function endSessionCompletely(reason) {
   stopCountdown();
-
-  if (activeCall) {
-    activeCall.close();
-    activeCall = null;
-  }
+  if (activeCall) { activeCall.close(); activeCall = null; }
   if (localStream) {
     localStream.getTracks().forEach((t) => t.stop());
     localStream = null;
   }
-
   watchingBanner.style.display = "none";
   startBtn.style.display = "block";
   endBtn.style.display = "none";
@@ -147,6 +140,6 @@ function endSessionCompletely(reason) {
 }
 
 startBtn.addEventListener("click", startSharing);
-endBtn.addEventListener("click", () => endSessionCompletely("Session ended by host."));
+endBtn.addEventListener("click", () => endSessionCompletely("Ended by host."));
 
-initPeer();
+createPeerWithRetry();
