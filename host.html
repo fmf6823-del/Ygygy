@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ViewOnly — Host</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>Host — Share your screen</h1>
+  <p class="subtitle">The viewer can only watch. They cannot click, type, or control anything.</p>
+
+  <div class="card">
+    <label>Your session code (share this with the viewer)</label>
+    <div class="id-box" id="session-id">generating…</div>
+
+    <div class="status-row">
+      <div class="dot off" id="status-dot"></div>
+      <span id="status-text">Not sharing</span>
+    </div>
+
+    <button class="primary" id="start-btn">Start Sharing</button>
+    <button class="danger" id="end-btn" style="display:none;">End Session</button>
+
+    <div class="watching-banner" id="watching-banner" style="display:none;">
+      <span class="pulse"></span> A viewer is currently watching your screen
+    </div>
+
+    <div class="timer" id="timer" style="display:none;">02:00</div>
+  </div>
+
+  <div class="notice">
+    Clicking "Start Sharing" opens your browser's own screen-share picker — that prompt is
+    controlled by the browser, not this page, and cannot be skipped or hidden. The session
+    automatically ends after 2 minutes, or sooner if you press End. The viewer has no way to
+    send clicks, taps, or keystrokes back to you.
+  </div>
+
+  <p><a class="nav-link" href="index.html">&larr; Back</a></p>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
+  <script src="host.js"></script>
+</body>
+</html>

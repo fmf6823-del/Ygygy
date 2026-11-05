@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ViewOnly — Consent-based Screen Viewing</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>ViewOnly</h1>
+  <p class="subtitle">Consent-based, view-only screen sharing.<br>No remote input. Auto-expires after 2 minutes.</p>
+
+  <div class="card">
+    <button class="primary" onclick="location.href='host.html'">I want to share my screen (Host)</button>
+    <button class="secondary" onclick="location.href='viewer.html'">I want to view a shared screen (Viewer)</button>
+  </div>
+
+  <div class="notice">
+    This is a testing / educational project. The host must explicitly approve both the
+    browser's screen-share prompt and the share itself. The viewer can never click, type,
+    or send any input — only video is transmitted. The connection is end-to-end encrypted
+    (WebRTC DTLS-SRTP) and auto-ends after 2 minutes or when either side presses End.
+  </div>
+</body>
+</html>

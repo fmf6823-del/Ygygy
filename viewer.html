@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ViewOnly — Viewer</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>Viewer — Watch a shared screen</h1>
+  <p class="subtitle">Read-only. You cannot click, type, or control the host's device.</p>
+
+  <div class="card">
+    <label>Enter the host's session code</label>
+    <input type="text" id="code-input" placeholder="e.g. a1b2c3d4" autocomplete="off" />
+    <button class="primary" id="connect-btn">Connect</button>
+
+    <div class="status-row">
+      <div class="dot off" id="status-dot"></div>
+      <span id="status-text">Not connected</span>
+    </div>
+
+    <div class="timer" id="timer" style="display:none;">02:00</div>
+    <video id="remote-video" autoplay playsinline style="display:none;"></video>
+
+    <button class="danger" id="end-btn" style="display:none;">End Viewing</button>
+  </div>
+
+  <div class="notice">
+    This connection is view-only by design — no input, no data channel for control, just a
+    video track. It is end-to-end encrypted and will automatically disconnect after 2 minutes.
+  </div>
+
+  <p><a class="nav-link" href="index.html">&larr; Back</a></p>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js"></script>
+  <script src="viewer.js"></script>
+</body>
+</html>
